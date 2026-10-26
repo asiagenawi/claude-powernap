@@ -142,6 +142,7 @@ claude-powernap log      # what the watcher and monitor have been doing
 | `weekly_guard` | `false` | opt-in: also warn/pause on the **weekly** window (no auto-resume — its reset is days away) |
 | `weekly_threshold_pct` | `90` | weekly-guard warning threshold |
 | `endpoint_enabled` | `true` | `false` = fully local estimation only |
+| `endpoint_failure_grace_min` | `15` | for this long after a good endpoint reading, a failed read (e.g. HTTP 429) is skipped instead of switching to local estimation, as long as that reading's trend is clear of the warning triggers; `0` = switch at once |
 | `terminal_app` | `Terminal` | macOS: `Terminal`/`iTerm2`; Linux: terminal binary name (auto-detected if unset) |
 | `resume_grace_min` | `3` | schedule resume this long after reset |
 | `headless_resume_extra_args` | `[]` | extra flags for last-resort headless resume |
@@ -170,7 +171,10 @@ claude-powernap works *with* the usage limit, not around it:
   your machine; a ToS gray area). Handled: if the endpoint fails or
   you set `endpoint_enabled: false`, the tool switches automatically to
   local transcript estimation, self-calibrated whenever endpoint data was
-  available.
+  available. A brief failure right after a good reading (a 429 when
+  several tools poll the endpoint) only skips that check while the last
+  reading's trend is clear of the warning triggers; otherwise, or after
+  `endpoint_failure_grace_min`, it switches.
 - **The paused session must stay open** — that's the point. If its alarm
   dies anyway (sleep, reboot, crash), the watcher notices the missed wake-up
   and resumes the session itself.

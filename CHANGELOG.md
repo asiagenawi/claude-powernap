@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning: [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+- A brief endpoint failure no longer switches a quiet window to the local
+  estimate. Field incident: the usage endpoint answered HTTP 429 on and off
+  for an hour (several tools polled it); each failure dropped to the local
+  estimate (all transcripts on the machine, budget from the limit-hit
+  heuristic) and a burn-rate warning paused two sessions at "93.4%" while
+  the endpoint read 19%. A failed read within `endpoint_failure_grace_min`
+  (default 15) of a good one now returns `source: "unavailable"` as long as
+  the last endpoint reading, carried forward at its burn rate, stays below
+  `threshold_pct` and outside `safety_margin_min`; the hook then keeps the
+  last reading and its samples and warns no one. Near the limit, after the
+  grace window, after an account switch, and on installs that never had an
+  endpoint reading, it falls back to local estimation as before.
+
+### Added
+- `scripts/ci_endpoint_grace_test.py`: in-process regression test (endpoint
+  stubbed, transcripts and state sandboxed); wired into unix and windows CI.
+
 ## [0.3.2] - 2026-07-18
 
 ### Fixed

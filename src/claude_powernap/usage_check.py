@@ -152,6 +152,13 @@ def run_check(cfg, session_id, event, debug, force_local, save_ok=True):
     state["last_check"] = now
 
     usage = get_usage_local(state) if force_local else get_usage(state, cfg)
+    if usage["source"] == "unavailable":
+        # Endpoint gap inside the grace window: no reading this round.
+        # The last reading and its samples stand; the next check retries.
+        if debug:
+            print(json.dumps(usage, indent=2))
+        persist(state)
+        return
     if usage["source"] != state.get("last_source"):
         state["samples"] = []  # endpoint and local pct are different scales
     if usage.get("pct") is not None:

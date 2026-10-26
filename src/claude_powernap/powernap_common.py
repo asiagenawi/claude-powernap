@@ -34,6 +34,7 @@ DEFAULT_CONFIG = {
     "weekly_guard": False,      # opt-in: warn/pause on the WEEKLY window too
     "weekly_threshold_pct": 90,
     "endpoint_enabled": True,
+    "endpoint_failure_grace_min": 15,    # skip a failed read this soon after a good one
     "terminal_app": "Terminal",          # or "iTerm2"
     "resume_grace_min": 3,               # schedule resume this many min after reset
     "headless_resume_extra_args": [],    # e.g. ["--dangerously-skip-permissions"]
@@ -387,7 +388,7 @@ def watcher_scheduled():
 
 
 ACCOUNT_KEYS = ("keychain_service", "calibrated_budget", "calibration_ts",
-                "samples", "last_pct")
+                "samples", "last_pct", "endpoint_ok_ts")
 
 
 def check_account_switch(state):
@@ -466,12 +467,47 @@ def projected_minutes_to_limit(state, now=None):
     return max(0.0, 100 - hist[-1][1]) / rate
 
 
+def _endpoint_gap_is_safe(state, cfg, now=None):
+    """May a failed endpoint read be skipped instead of estimated locally?
+
+    Only while the last endpoint reading, carried forward at its recent burn
+    rate, is below the threshold and outside the burn-rate safety margin, so
+    a skipped check can never hide a warning the endpoint trend calls for.
+    """
+    now = now or time.time()
+    pct, hist = state.get("last_pct"), state.get("samples") or []
+    if state.get("last_source") != "endpoint" or pct is None or not hist:
+        return False
+    projected = projected_minutes_to_limit(state, now)
+    if projected is None:  # idle or too few samples: the last reading holds
+        return pct < cfg["threshold_pct"]
+    left = projected - (now - hist[-1][0]) / 60
+    est = 100 - max(left, 0) * (100 - pct) / projected if projected > 0 else 100
+    return (est < cfg["threshold_pct"]
+            and not (est >= 50 and left <= cfg["safety_margin_min"]))
+
+
 def get_usage(state, cfg=None):
     cfg = cfg or load_config()
     check_account_switch(state)
     usage = get_usage_from_endpoint(state) if cfg.get("endpoint_enabled") else None
     if usage is None:
+        # A failed read shortly after a good one (HTTP 429 when several tools
+        # poll the endpoint, a timeout) is a gap, not a reason to switch
+        # scales: the local estimate counts every transcript on this machine
+        # against an estimated budget and can sit far from the endpoint's
+        # figure, so a mid-window switch can pause sessions on a number the
+        # endpoint never showed. Skip this check (the next one retries) while
+        # the last endpoint reading, carried forward at its burn rate, stays
+        # clear of both warning triggers; otherwise fall back as before.
+        age = time.time() - state.get("endpoint_ok_ts", 0)
+        if (cfg.get("endpoint_enabled")
+                and 0 <= age < (cfg.get("endpoint_failure_grace_min") or 0) * 60
+                and _endpoint_gap_is_safe(state, cfg)):
+            return {"source": "unavailable", "pct": None, "resets_at": None,
+                    "weekly_pct": None, "weekly_resets_at": None}
         return get_usage_local(state)
+    state["endpoint_ok_ts"] = time.time()
     # Continuously calibrate the local fallback budget against endpoint truth
     # (at most every 6h, only when the window is meaningfully used, and only
     # when THIS machine's block is substantial — on multi-machine accounts the

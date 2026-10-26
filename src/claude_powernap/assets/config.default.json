@@ -6,6 +6,7 @@
   "weekly_guard": false,
   "weekly_threshold_pct": 90,
   "endpoint_enabled": true,
+  "endpoint_failure_grace_min": 15,
   "terminal_app": "Terminal",
   "resume_grace_min": 3,
   "headless_resume_extra_args": [],
