@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning: [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [0.3.3] - 2026-10-26
 
 ### Fixed
 - A brief endpoint failure no longer switches a quiet window to the local

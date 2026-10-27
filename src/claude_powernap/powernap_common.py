@@ -19,7 +19,7 @@ STATE_PATH = POWERNAP_DIR / "state.json"
 CHECKPOINT_DIR = POWERNAP_DIR / "checkpoints"
 LOG_PATH = POWERNAP_DIR / "powernap.log"
 
-VERSION = "0.3.2"  # single source for deployed copies (UA, cli version)
+VERSION = "0.3.3"  # single source for deployed copies (UA, cli version)
 USAGE_URL = "https://api.anthropic.com/api/oauth/usage"
 KEYCHAIN_SERVICE_PREFIX = "Claude Code-credentials"
 IS_MAC = sys.platform == "darwin"

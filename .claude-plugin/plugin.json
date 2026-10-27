@@ -1,7 +1,7 @@
 {
   "name": "powernap",
   "description": "Your Claude Code session sees the 5-hour limit coming, checkpoints its work, and resumes itself when the window resets.",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "author": { "name": "asiagenawi" },
   "homepage": "https://github.com/asiagenawi/claude-powernap",
   "repository": "https://github.com/asiagenawi/claude-powernap",
